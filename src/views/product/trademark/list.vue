@@ -1,26 +1,32 @@
 <template>
   <div>
-    <el-button type="primary" @click="visible = true" icon="el-icon-plus"
-      >添加</el-button
-    >
+    <el-button type="primary" @click="add" icon="el-icon-plus">添加</el-button>
 
-    <el-table :data="trademarkList" border style="width: 100%; margin: 20px 0">
+    <el-table
+      :data="trademarkList"
+      v-loading="loading"
+      border
+      style="width: 100%; margin: 20px 0"
+    >
       <el-table-column type="index" label="序号" width="80" align="center">
       </el-table-column>
       <el-table-column prop="tmName" label="品牌名称"> </el-table-column>
       <el-table-column label="品牌LOGO">
-        <template slot-scope="scope">
+        <template v-slot="scope">
           <img class="trademark-img" :src="scope.row.logoUrl" alt="logo" />
         </template>
       </el-table-column>
       <el-table-column label="操作">
-        <template>
-          <el-button type="warning" icon="el-icon-edit">修改</el-button>
-          <el-button type="danger" icon="el-icon-delete">删除</el-button>
+        <template v-slot="{ row }">
+          <el-button type="warning" icon="el-icon-edit" @click="update(row)"
+            >修改</el-button
+          >
+          <el-button type="danger" icon="el-icon-delete" @click="del(row)"
+            >删除</el-button
+          >
         </template>
       </el-table-column>
     </el-table>
-
     <el-pagination
       class="trademark-pagination"
       @size-change="getPageList(page, $event)"
@@ -33,7 +39,11 @@
     >
     </el-pagination>
 
-    <el-dialog title="添加品牌" :visible.sync="visible" width="50%">
+    <el-dialog
+      :title="`${trademarkForm.id ? '修改' : '添加'}品牌`"
+      :visible.sync="visible"
+      width="50%"
+    >
       <el-form
         :model="trademarkForm"
         :rules="rules"
@@ -71,18 +81,19 @@
     </el-dialog>
   </div>
 </template>
-<script>
-// import { trademark } from "@/api";
 
+<script>
 export default {
   name: "TrademarkList",
   data() {
     return {
-      trademarkList: [],
-      total: 0,
-      page: 1,
-      limit: 3,
-      visible: false,
+      count: 0, // 测试数据
+      trademarkList: [], // 所有数据
+      total: 0, // 总数
+      page: 1, // 页码
+      limit: 3, // 每页条数
+      visible: false, // 对话框显示&隐藏
+      loading: false,
       trademarkForm: {
         // 表单数据
         tmName: "",
@@ -92,11 +103,7 @@ export default {
         // 表单校验规则
         tmName: [
           {
-            // 必填项
-            required: true,
-            // 错误信息
-            message: "请输入品牌名称",
-            // 触发表单校验时机
+            validator: this.validator,
             trigger: "blur",
           },
         ],
@@ -105,17 +112,96 @@ export default {
     };
   },
   methods: {
+    del(row) {
+      this.$confirm(`确定删除 ${row.tmName} 吗?`, "提示", {
+        type: "warning",
+      })
+        .then(async () => {
+          const result = await this.$API.trademark.deleteTrademark(row.id);
+          this.$message({
+            type: "success",
+            message: "删除成功!",
+          });
+          this.getPageList(
+            this.trademarkList.length === 1 && this.page > 1
+              ? this.page - 1
+              : this.page,
+            this.limit
+          );
+        })
+        .catch((error) => {
+          // 点击取消的回调
+          if (error === "cancel") {
+            this.$message({
+              type: "info",
+              message: "已取消删除",
+            });
+          }
+        });
+    },
+    validator(rule, value, callback) {
+      if (!value) {
+        callback(new Error("请输入品牌名称"));
+        return;
+      } else if (value.length < 2 || value.length > 10) {
+        callback(new Error("输入品牌名称的长度应为2-10位"));
+        return;
+      }
+
+      callback();
+    },
+    add() {
+      // 清空表单的校验
+      this.$refs.trademarkForm && this.$refs.trademarkForm.clearValidate();
+      this.visible = true;
+      // 清空（从修改 - 添加要清空修改的数据）
+      this.trademarkForm = {
+        tmName: "",
+        logoUrl: "",
+      };
+    },
+    update(row) {
+      // 清空表单的校验
+      this.$refs.trademarkForm && this.$refs.trademarkForm.clearValidate();
+
+      // 显示对话框
+      this.visible = true;
+      this.trademarkForm = { ...row };
+    },
     // 提交表单
     submitForm(form) {
       // 校验表单
       this.$refs[form].validate(async (valid) => {
         if (valid) {
+          const { trademarkForm } = this;
+          // 代表是否是更新
+          const isUpdate = !!trademarkForm.id;
+
+          // 如果是修改需要验证
+          if (isUpdate) {
+            const tm = this.trademarkList.find(
+              (tm) => tm.id === trademarkForm.id
+            );
+
+            if (
+              tm.tmName === trademarkForm.tmName &&
+              tm.logoUrl === trademarkForm.logoUrl
+            ) {
+              this.$message.warning("不能提交与之前一样的数据");
+              return;
+            }
+          }
           // 发送请求
-          const result = await this.$API.trademark.addTrademark(
-            this.trademarkForm
-          );
+          let result;
+
+          if (isUpdate) {
+            result = await this.$API.trademark.updateTrademark(trademarkForm);
+          } else {
+            result = await this.$API.trademark.addTrademark(trademarkForm);
+          }
+
           if (result.code === 200) {
-            this.$message.success("添加品牌数据成功~");
+            this.$message.success(`${isUpdate ? "修改" : "添加"}品牌数据成功~`);
             this.visible = false; // 隐藏对话框
             this.getPageList(this.page, this.limit); // 请求加载新数据
           } else {
@@ -130,12 +216,11 @@ export default {
     },
     // 上次图片之前触发的回调
     beforeAvatarUpload(file) {
-      // console.log(file);
-      const imgTypes = ["image/jpg", "image/png", "image/jpeg", "image/gif"];
+      const imgTypes = ["image/jpg", "image/png", "image/jpeg"];
       // 检测文件类型
       const isValidType = imgTypes.indexOf(file.type) > -1;
       // 检测文件大小
-      const isLt = file.size / 1024 < 1000;
+      const isLt = file.size / 1024 < 50;
 
       if (!isValidType) {
         this.$message.error("上传品牌LOGO只能是 JPG 或 PNG 格式!");
@@ -149,6 +234,7 @@ export default {
     },
     // 请求分页列表数据
     async getPageList(page, limit) {
+      this.loading = true;
       const result = await this.$API.trademark.getPageList(page, limit);
       if (result.code === 200) {
         this.$message.success("获取品牌分页列表成功");
@@ -159,26 +245,14 @@ export default {
       } else {
         this.$message.error("获取品牌分页列表失败");
       }
+      this.loading = false;
     },
   },
   mounted() {
-    //#region
-    //   try {
-    //     const result = await this.$API.trademark.getPageList(1, 3);
-    //     // console.log(result);
-    //     if (result.code === 200) {
-    //       this.$message.success("获取品牌分页列表数据成功！");
-    //       this.trademarkList = result.data.records;
-    //       this.total = result.data.total;
-    //     } else {
-    //       this.$message.error("获取品牌分页列表数据失败！");
-    //     }
-    //   } catch (error) {
-    //     this.$message.error("获取品牌分页列表数据失败！");
-    //     console.log("error" + error);
-    //   }
-    //#endregion
     this.getPageList(this.page, this.limit);
+  },
+  components: {
+    Test,
   },
 };
 </script>

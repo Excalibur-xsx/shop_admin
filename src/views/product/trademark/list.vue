@@ -1,6 +1,21 @@
 <template>
   <div>
     <el-button type="primary" @click="add" icon="el-icon-plus">添加</el-button>
+    <!--
+      :count="count"
+      v-bind:count="count" 单向数据流 / 强制绑定数据
+        子组件只能读取不能修改
+        问题：子组件需要修改数据
+        解决：数据源在哪，更新数据的方法就定义在哪
+
+      :count.sync="count" 给子组件传递xxx数据以及更新数据的方法update:xxx
+        相当于：
+          :count="count" @update:count="xxx"
+
+        .sync用于父子通信（子向父）
+     -->
+    <!-- <Test :count="count" :updateCount="updateCount" /> -->
+    <!-- <Test :count.sync="count" /> -->
 
     <el-table
       :data="trademarkList"
@@ -12,7 +27,13 @@
       </el-table-column>
       <el-table-column prop="tmName" label="品牌名称"> </el-table-column>
       <el-table-column label="品牌LOGO">
+        <!-- <template slot-scope="scope"> -->
         <template v-slot="scope">
+          <!-- {{ JSON.stringify(scope) }} -->
+          <!--
+            scope代表所有数据
+              scope.row 代表当前行所有数据
+          -->
           <img class="trademark-img" :src="scope.row.logoUrl" alt="logo" />
         </template>
       </el-table-column>
@@ -27,6 +48,33 @@
         </template>
       </el-table-column>
     </el-table>
+
+    <!-- <el-pagination
+      class="trademark-pagination"
+      @size-change="handleSizeChange"
+      @current-change="handleCurrentChange"
+      :page-sizes="[3, 6, 9]"
+      :page-size.sync="limit"
+      :current-page="page"
+      layout="prev, pager, next, jumper, sizes, total"
+      :total="total"
+    >
+    </el-pagination> -->
+
+    <!--
+      :page-size.sync="limit"   可以让limit更新变成同步更新
+      :current-page.sync="page" 可以让page更新变成同步更新
+
+      $event
+        1.  在DOM事件中代表 event
+        <button @click="handle(123, $event)"></button>
+        触发事件是浏览器的行为，所以$event代表event
+
+        2. 在自定义事件中代表 第一个参数
+          <button @aaa="handle($event)"></button>
+          假设这样触发自定义事件： this.$emit('aaa', 123, 456);
+          那么$event就为123（第一个参数）
+    -->
     <el-pagination
       class="trademark-pagination"
       @size-change="getPageList(page, $event)"
@@ -54,7 +102,16 @@
           <el-input v-model="trademarkForm.tmName"></el-input>
         </el-form-item>
         <el-form-item label="品牌LOGO" prop="logoUrl">
+          <!--
+            前提允许跨域
+              action="http://182.92.128.115/admin/product/fileUpload"
+              目标服务器地址: 代理配置中 (vue.config.js)
 
+            不允许跨域，就使用proxy
+              action="/dev-api/admin/product/fileUpload"
+              /dev-api -> request.js 代理
+             在main.js中定义 Vue.prototype.$BASE_API = process.env.VUE_APP_BASE_API
+           -->
           <el-upload
             class="avatar-uploader"
             :action="`${$BASE_API}/admin/product/fileUpload`"
@@ -83,6 +140,9 @@
 </template>
 
 <script>
+// import { trademark } from "@/api";
+import Test from "./test";
+
 export default {
   name: "TrademarkList",
   data() {
@@ -103,7 +163,13 @@ export default {
         // 表单校验规则
         tmName: [
           {
+            // 必填项
+            // required: true,
+            // 错误信息
+            // message: "请输入品牌名称",
+            // 自定义表单校验规则
             validator: this.validator,
+            // 触发表单校验时机
             trigger: "blur",
           },
         ],
@@ -117,11 +183,17 @@ export default {
         type: "warning",
       })
         .then(async () => {
+          // 点击确定的回调
+          // 发删除品牌的请求
           const result = await this.$API.trademark.deleteTrademark(row.id);
+          // 如果成功了, 提示成功, 重新获取列表(哪一页?)
           this.$message({
             type: "success",
             message: "删除成功!",
           });
+
+          // 哪一页?  显示上一页(当前页的列表数据只剩下1个)  否则显示当前页
+          // 如果当前是第1页且只剩下1条数据 ==> 请求第1页数据(当前页)
           this.getPageList(
             this.trademarkList.length === 1 && this.page > 1
               ? this.page - 1
@@ -140,6 +212,12 @@ export default {
         });
     },
     validator(rule, value, callback) {
+      /*
+        rule  校验的字段名
+        value 校验的字段值
+        callback 决定表单校验成功/失败
+      */
+      // 其中callback必须调用
       if (!value) {
         callback(new Error("请输入品牌名称"));
         return;
@@ -161,13 +239,28 @@ export default {
       };
     },
     update(row) {
+      /*
+        const a = [{x: 1}];
+        const b = a[0];
+        b.x = 2;
+
+        trademarkList: [row]
+        trademarkForm = row
+        trademarkForm.x = 2
+      */
       // 清空表单的校验
       this.$refs.trademarkForm && this.$refs.trademarkForm.clearValidate();
 
       // 显示对话框
       this.visible = true;
+      // row 代表当前行的数据 {}
+      // this.trademarkForm = row; // 地址值一样，修改trademarkForm会导致trademarkList发生变化
       this.trademarkForm = { ...row };
+      // this.trademarkForm = JSON.parse(JSON.stringify(row));
     },
+    // updateCount() {
+    //   this.count++;
+    // },
     // 提交表单
     submitForm(form) {
       // 校验表单
@@ -191,6 +284,9 @@ export default {
               return;
             }
           }
+
+          // 表单校验通过
+          // console.log(this.trademarkForm);
           // 发送请求
           let result;
 
@@ -212,10 +308,12 @@ export default {
     },
     // 上传图片成功的回调
     handleAvatarSuccess(res) {
+      // console.log(res.data); // 图片地址
       this.trademarkForm.logoUrl = res.data;
     },
     // 上次图片之前触发的回调
     beforeAvatarUpload(file) {
+      // console.log(file);
       const imgTypes = ["image/jpg", "image/png", "image/jpeg"];
       // 检测文件类型
       const isValidType = imgTypes.indexOf(file.type) > -1;
@@ -232,6 +330,12 @@ export default {
       // 返回值为false，代表不可以上传
       return isValidType && isLt;
     },
+    // handleSizeChange(limit) {
+    //   this.getPageList(this.page, limit);
+    // },
+    // handleCurrentChange(page) {
+    //   this.getPageList(page, this.limit);
+    // },
     // 请求分页列表数据
     async getPageList(page, limit) {
       this.loading = true;
@@ -255,6 +359,28 @@ export default {
     Test,
   },
 };
+
+/*
+  lang="less"
+    完整写法
+    深度选择器 /deep/
+  lang="sass"
+    可以省略 {}
+    可以省略 ;
+    深度选择器 /deep/  >>>
+  lang="scss"
+    完整写法
+
+  lang="stylus"
+    可以省略 {}
+    可以省略 :
+    可以省略 ;
+
+  scoped
+    让样式只在当前组件生效
+    问题：加上scoped，会让设置的子组件样式失效
+    解决：使用深度选择器
+*/
 </script>
 
 <style lang="sass" scoped>

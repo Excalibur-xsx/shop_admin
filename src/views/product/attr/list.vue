@@ -1,6 +1,5 @@
 <template>
   <div>
-    <!-- 全局事件总线事件 -->
     <Category :disabled="!isShowList" />
 
     <el-card v-show="isShowList" style="margin-top: 20px">
@@ -9,14 +8,11 @@
         icon="el-icon-plus"
         :disabled="!category.category3Id"
         @click="add"
-        >添加属性</el-button
-      >
+      >添加属性</el-button>
 
       <el-table :data="attrList" border style="width: 100%; margin: 20px 0">
-        <el-table-column type="index" label="序号" width="80" align="center">
-        </el-table-column>
-        <el-table-column prop="attrName" label="属性名称" width="150">
-        </el-table-column>
+        <el-table-column type="index" label="序号" width="80" align="center"></el-table-column>
+        <el-table-column prop="attrName" label="属性名称" width="150"></el-table-column>
 
         <el-table-column label="属性值列表">
           <template v-slot="{ row }">
@@ -24,23 +20,13 @@
               style="margin-right: 5px"
               v-for="attrVal in row.attrValueList"
               :key="attrVal.id"
-              >{{ attrVal.valueName }}</el-tag
-            >
+            >{{ attrVal.valueName }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column label="操作" width="150">
           <template v-slot="{ row }">
-            <el-button
-              type="warning"
-              icon="el-icon-edit"
-              size="mini"
-              @click="update(row)"
-            ></el-button>
-            <el-button
-              type="danger"
-              icon="el-icon-delete"
-              size="mini"
-            ></el-button>
+            <el-button type="warning" icon="el-icon-edit" size="mini" @click="update(row)"></el-button>
+            <el-button type="danger" icon="el-icon-delete" size="mini"></el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -58,16 +44,10 @@
         :disabled="!attr.attrName"
         icon="el-icon-plus"
         @click="addAttrValue"
-        >添加属性值</el-button
-      >
+      >添加属性值</el-button>
 
-      <el-table
-        :data="attr.attrValueList"
-        border
-        style="width: 100%; margin: 20px 0"
-      >
-        <el-table-column type="index" label="序号" width="80" align="center">
-        </el-table-column>
+      <el-table :data="attr.attrValueList" border style="width: 100%; margin: 20px 0">
+        <el-table-column type="index" label="序号" width="80" align="center"></el-table-column>
         <el-table-column label="属性值名称">
           <template v-slot="{ row, $index }">
             <el-input
@@ -79,27 +59,14 @@
               ref="input"
               size="mini"
             ></el-input>
-            <span
-              v-else
-              @click="edit(row)"
-              style="display: block; width: 100%"
-              >{{ row.valueName }}</span
-            >
+            <span v-else @click="edit(row)" style="display: block; width: 100%">{{ row.valueName }}</span>
           </template>
         </el-table-column>
         <el-table-column label="操作">
           <template v-slot="{ row, $index }">
-            <!-- 文档有问题：onConfirm -->
-            <el-popconfirm
-              @onConfirm="delAttrValue($index)"
-              :title="`确定删除 ${row.valueName} 吗？`"
-              ><el-button
-                type="danger"
-                icon="el-icon-delete"
-                size="mini"
-                slot="reference"
-              ></el-button
-            ></el-popconfirm>
+            <el-popconfirm @onConfirm="delAttrValue($index)" :title="`确定删除 ${row.valueName} 吗？`">
+              <el-button type="danger" icon="el-icon-delete" size="mini" slot="reference"></el-button>
+            </el-popconfirm>
           </template>
         </el-table-column>
       </el-table>
@@ -159,7 +126,6 @@ export default {
       const data = this.attr;
 
       if (isAdd) {
-        // 还需要categoryId和categoryLevel
         data.categoryId = this.category.category3Id;
         data.categoryLevel = 3;
       }

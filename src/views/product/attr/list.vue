@@ -1,12 +1,5 @@
 <template>
   <div>
-    <!-- 自定义事件 -->
-    <!-- <Category
-      @change="getAttrList"
-      @clearList="clearList"
-      :disabled="!isShowList"
-    /> -->
-
     <!-- 全局事件总线事件 -->
     <Category :disabled="!isShowList" />
 
@@ -77,12 +70,6 @@
         </el-table-column>
         <el-table-column label="属性值名称">
           <template v-slot="{ row, $index }">
-            <!--
-              事件修饰符：
-                .native
-                专门给组件绑定事件使用的
-                会给组件中的第一个标签绑定相应的原生DOM事件
-             -->
             <el-input
               v-if="row.edit"
               v-model="row.valueName"
@@ -92,7 +79,6 @@
               ref="input"
               size="mini"
             ></el-input>
-            <!-- 直接给对象添加新属性不是响应式数据, 通过this.$set添加的属性才是响应式 -->
             <span
               v-else
               @click="edit(row)"
@@ -126,17 +112,6 @@
 
 <script>
 import Category from "@/components/Category";
-
-/*
-categoryId:61
-categoryLevel:3
-id:3467
-attrName:"屏幕尺寸"
-attrValueList:Array[3]
-  attrId:3467
-  id:18904
-  valueName:"5.0~5.49英寸"
-*/
 
 export default {
   name: "AttrList",
@@ -184,7 +159,6 @@ export default {
       const data = this.attr;
 
       if (isAdd) {
-        // this.attr里面只有attrName和attrValueList
         // 还需要categoryId和categoryLevel
         data.categoryId = this.category.category3Id;
         data.categoryLevel = 3;
@@ -218,11 +192,6 @@ export default {
       });
     },
     update(attr) {
-      // 为了防止attr变化时直接修改原数据
-      // this.attr = {
-      //   ...attr,
-      // };
-
       // 深度克隆：防止对象中对象还存在引用关系
       this.attr = JSON.parse(JSON.stringify(attr));
 
@@ -232,7 +201,6 @@ export default {
       this.category = category;
       const result = await this.$API.attrs.getAttrList(category);
       if (result.code === 200) {
-        // console.log(result.data);
         // 子组件给父组件传递参数 自定义事件
         this.attrList = result.data;
       } else {

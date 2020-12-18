@@ -6,20 +6,11 @@
       </el-form-item>
       <el-form-item label="品牌" prop="tmId">
         <el-select placeholder="请选择品牌" v-model="spu.tmId">
-          <el-option
-            v-for="tm in trademarkList"
-            :label="tm.tmName"
-            :value="tm.id"
-            :key="tm.id"
-          ></el-option>
+          <el-option v-for="tm in trademarkList" :label="tm.tmName" :value="tm.id" :key="tm.id"></el-option>
         </el-select>
       </el-form-item>
       <el-form-item label="SPU描述" prop="description">
-        <el-input
-          type="textarea"
-          placeholder="请输入SPU描述"
-          v-model="spu.description"
-        ></el-input>
+        <el-input type="textarea" placeholder="请输入SPU描述" v-model="spu.description"></el-input>
       </el-form-item>
       <el-form-item label="SPU图片" prop="imageList">
         <el-upload
@@ -37,12 +28,8 @@
         </el-upload>
         <span>只能上传jpg/png文件，且不超过50kb</span>
       </el-form-item>
-
       <el-form-item label="销售属性" prop="sale">
-        <el-select
-          :placeholder="`还剩${filterSaleAttrList.length}个未选择`"
-          v-model="spu.sale"
-        >
+        <el-select :placeholder="`还剩${filterSaleAttrList.length}个未选择`" v-model="spu.sale">
           <el-option
             v-for="sale in filterSaleAttrList"
             :label="sale.name"
@@ -55,17 +42,10 @@
           icon="el-icon-plus"
           :disabled="!spu.sale"
           @click="addSpuSaleAttr"
-          >添加销售属性</el-button
-        >
-        <el-table
-          :data="spuSaleAttrList"
-          border
-          style="width: 100%; margin: 20px 0"
-        >
-          <el-table-column type="index" label="序号" width="80" align="center">
-          </el-table-column>
-          <el-table-column prop="saleAttrName" label="属性名称" width="150">
-          </el-table-column>
+        >添加销售属性</el-button>
+        <el-table :data="spuSaleAttrList" border style="width: 100%; margin: 20px 0">
+          <el-table-column type="index" label="序号" width="80" align="center"></el-table-column>
+          <el-table-column prop="saleAttrName" label="属性名称" width="150"></el-table-column>
 
           <el-table-column label="属性值列表">
             <template v-slot="{ row }">
@@ -75,8 +55,7 @@
                 style="margin-right: 5px"
                 v-for="(attrVal, i) in row.spuSaleAttrValueList"
                 :key="attrVal.id"
-                >{{ attrVal.saleAttrValueName }}</el-tag
-              >
+              >{{ attrVal.saleAttrValueName }}</el-tag>
               <el-input
                 v-if="row.edit"
                 size="mini"
@@ -87,13 +66,7 @@
                 ref="input"
                 v-model="saleAttrValueText"
               ></el-input>
-              <el-button
-                v-else
-                icon="el-icon-plus"
-                size="mini"
-                @click="edit(row)"
-                >添加</el-button
-              >
+              <el-button v-else icon="el-icon-plus" size="mini" @click="edit(row)">添加</el-button>
             </template>
           </el-table-column>
           <el-table-column label="操作" width="150">
@@ -101,20 +74,16 @@
               <el-popconfirm
                 @onConfirm="delSpuSaleAttr($index)"
                 :title="`确定删除 ${row.saleAttrName} 吗？`"
-                ><el-button
-                  type="danger"
-                  icon="el-icon-delete"
-                  size="mini"
-                  slot="reference"
-                ></el-button
-              ></el-popconfirm>
+              >
+                <el-button type="danger" icon="el-icon-delete" size="mini" slot="reference"></el-button>
+              </el-popconfirm>
             </template>
           </el-table-column>
         </el-table>
       </el-form-item>
       <el-form-item>
         <el-button type="primary" @click="save">保存</el-button>
-        <el-button @click="$emit('showList', spu.category3Id)">取消</el-button>
+        <el-button @click="$emit('showList')">取消</el-button>
       </el-form-item>
     </el-form>
 
@@ -125,7 +94,9 @@
 </template>
 
 <script>
+import { mapState } from "vuex";
 import { category } from "@/api";
+
 export default {
   name: "SpuUpdateList",
   props: {
@@ -152,6 +123,9 @@ export default {
     };
   },
   computed: {
+    ...mapState({
+      category: (state) => state.category.category,
+    }),
     // 格式化图片数据
     formatImageList() {
       return this.imageList.map((img) => {
@@ -203,19 +177,25 @@ export default {
       this.$refs.spuForm.validate(async (valid) => {
         if (valid) {
           console.log("校验通过~");
-          // 收集数据
           const spu = {
             ...this.spu, // 展开数据
+            category3Id: this.category.category3Id,
             spuImageList: this.imageList,
             spuSaleAttrList: this.spuSaleAttrList,
           };
 
+          let result;
           // 发送请求
-          const result = await this.$API.spu.updateSpu(spu);
+          if (this.spu.id) {
+            result = await this.$API.spu.updateSpu(spu);
+          } else {
+            result = await this.$API.spu.saveSpu(spu);
+          }
+
           if (result.code === 200) {
             // 切换回showList
-            this.$emit("showList", this.spu.category3Id);
-            this.$message.success("更新SPU成功~");
+            this.$emit("showList");
+            this.$message.success(`${this.spu.id ? "更新" : "添加"}SPU成功~`);
           } else {
             this.$message.error(result.message);
           }
@@ -318,6 +298,7 @@ export default {
       const result = await this.$API.spu.getSpuImageList(id);
       if (result.code === 200) {
         this.$message.success("获取所有图片成功~");
+        // 处理数据
         this.imageList = result.data;
       } else {
         this.$message.error(result.message);
@@ -349,9 +330,12 @@ export default {
   },
   async mounted() {
     this.getTrademarkList();
-    this.getSpuImageList();
     this.getSaleAttrList();
-    this.getSpuSaleAttrList();
+    // 判断是添加还是修改
+    if (this.spu.id) {
+      this.getSpuSaleAttrList();
+      this.getSpuImageList();
+    }
   },
 };
 </script>

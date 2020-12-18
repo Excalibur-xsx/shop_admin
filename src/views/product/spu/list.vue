@@ -1,8 +1,12 @@
 <template>
   <div>
-    <Category :disabled="!isShowList" />
-    <SpuShowList v-if="isShowList" @showUpdateList="showUpdateList" />
-    <SpuUpdateList v-else :item="item" @showList="showList" />
+    <SkuList v-if="isShowSkuList" :spuItem="spuItem" @showList="showList" />
+
+    <div v-else>
+      <Category :disabled="!isShowList" />
+      <SpuShowList v-if="isShowList" @showUpdateList="showUpdateList" @showSpuList="showSpuList" />
+      <SpuUpdateList v-else :item="item" @showList="showList" />
+    </div>
   </div>
 </template>
 
@@ -10,6 +14,7 @@
 import Category from "@/components/Category";
 import SpuShowList from "./spuShowList";
 import SpuUpdateList from "./spuUpdateList";
+import SkuList from "./skuList";
 
 export default {
   name: "SpuList",
@@ -17,25 +22,32 @@ export default {
     return {
       isShowList: true,
       item: {},
+      isShowSkuList: false,
+      spuItem: {},
     };
   },
   methods: {
+    showSpuList(row) {
+      this.isShowSkuList = true;
+      this.spuItem = { ...row };
+    },
     showUpdateList(row) {
       this.isShowList = false;
       this.item = { ...row };
     },
-    showList(category3Id) {
+    showList(category) {
       this.isShowList = true;
-      // 等ShowList组件加载完成，在触发事件
-      this.$nextTick(() => {
-        this.$bus.$emit("change", { category3Id });
-      });
+      this.isShowSkuList = false;
     },
+  },
+  beforeDestroy() {
+    this.$store.commit("category/RESET_CATEGORY_ID");
   },
   components: {
     Category,
     SpuShowList,
     SpuUpdateList,
+    SkuList,
   },
 };
 </script>

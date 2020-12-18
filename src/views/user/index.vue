@@ -30,7 +30,7 @@
       <el-table-column label="邮箱" prop="email" />
       <el-table-column label="级别" prop="userLevel" />
       <el-table-column label="操作">
-        <template slot-scope="scope">
+        <template>
           <hint-button v-if="$hasBP('cuser.detail')" title="查看" size="mini" type="primary" icon="el-icon-thumb" circle></hint-button>
           <hint-button v-if="$hasBP('cuser.update')" title="修改" size="mini" type="primary" icon="el-icon-edit" circle></hint-button>
           <hint-button v-if="$hasBP('cuser.delete')" title="删除" size="mini" type="danger" icon="el-icon-delete" circle></hint-button>
@@ -73,7 +73,7 @@
     },
 
     methods: {
-      /* 
+      /*
       获取指定页码的分页列表显示
       */
       getUsers (page=1) {
@@ -87,7 +87,7 @@
           })
       },
 
-      /* 
+      /*
       每页数量发生改变的监听回调
       */
       handleSizeChange(size) {
@@ -95,7 +95,7 @@
         this.getUsers()
       },
 
-      /* 
+      /*
       根据输入条件进行搜索
       */
       search () {
@@ -103,7 +103,7 @@
         this.getUsers()
       },
 
-      /* 
+      /*
       重置输入生搜索
       */
       resetSearch () {
